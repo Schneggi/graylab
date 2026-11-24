@@ -235,7 +235,7 @@ $("sgo").onclick=async()=>{
   $("sgo").textContent="ABBRECHEN";ctl=new AbortController();
   const q=new URLSearchParams({host:$("shost").value.trim(),start:$("sa").value,end:$("sb").value,timeout:$("st").value});
   const on=m=>{
-    if(m.t==="open")$("srows").insertAdjacentHTML("beforeend",`<div class="card" style="margin-bottom:6px"><b>${m.port}</b> <span style="display:inline;color:var(--g)">OPEN</span> ${m.svc} <span style="display:inline;color:${m.risk?"var(--r)":"var(--m)"}">${m.risk?"HIGH":"NORMAL"}</span></div>`);
+    if(m.t==="open")$("srows").insertAdjacentHTML("beforeend",`<div class="card" style="margin-bottom:6px"><b>${m.port}</b> <span style="display:inline;color:var(--g)">OPEN</span> ${m.svc} <span style="display:inline;color:${m.risk?"var(--r)":"var(--m)"}">${m.risk?"HIGH":"NORMAL"}</span>${m.why?`<div style="color:var(--y);font-size:12px;margin-top:4px">${m.why}</div>`:""}</div>`);
     else if(m.t==="p")$("sbar").style.width=m.v+"%";
     else if(m.t==="done")$("sstat").textContent=`Fertig: ${m.open} offene Ports in ${m.secs}s`;
     else if(m.t==="err")$("sstat").textContent="Fehler: "+m.msg;
