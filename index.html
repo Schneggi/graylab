@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0e14">
+<title>GrayLab</title>
+<style>
+:root{--bg:#0a0e14;--p:#111822;--p2:#161f2c;--b:#1f2b3a;--t:#c9d6df;--m:#6b7c8d;--g:#00ff9c;--c:#00d4ff;--r:#ff4d6d;--y:#ffd166}
+*{box-sizing:border-box;margin:0;font-family:Consolas,monospace}
+html,body{height:100%}
+body{background:var(--bg);color:var(--t);font-size:14px;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+header{padding:14px 16px 6px}
+h1{color:var(--g);font-size:20px;letter-spacing:2px}
+header small{color:var(--m);font-size:10px}
+main{flex:1;overflow-y:auto;padding:8px 16px 16px}
+section{display:none}section.on{display:block}
+h2{color:var(--g);font-size:17px;margin:8px 0 12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.card{background:var(--p);border:1px solid var(--b);border-radius:10px;padding:10px 12px;overflow-wrap:anywhere}
+.card span{display:block;color:var(--m);font-size:10px;text-transform:uppercase}
+.card b{color:var(--c);font-size:14px}
+input,textarea,select{width:100%;background:var(--p);border:1px solid var(--b);border-radius:6px;color:var(--t);padding:10px;font-size:14px;margin-bottom:8px}
+input:focus,textarea:focus{outline:none;border-color:var(--g)}
+textarea{min-height:90px;resize:vertical}
+button{background:var(--p2);border:1px solid var(--g);color:var(--g);border-radius:6px;padding:10px 16px;font-weight:bold;font-size:13px;margin:0 6px 8px 0}
+button:active{background:var(--g);color:#000}
+label{display:block;color:var(--m);font-size:11px;margin:6px 0 3px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bar{height:10px;background:var(--p);border:1px solid var(--b);border-radius:6px;overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;width:0;background:var(--g);transition:.2s}
+.note{color:var(--y);background:#2a2412;border:1px solid #4a3f17;border-radius:6px;padding:8px;font-size:12px;margin-bottom:10px}
+.hv{font-size:11px;word-break:break-all;margin-bottom:8px}.hv b{color:var(--c)}
+nav{display:flex;background:var(--p);border-top:1px solid var(--b);padding-bottom:env(safe-area-inset-bottom)}
+nav a{flex:1;text-align:center;padding:12px 2px;color:var(--m);font-size:11px}
+nav a.on{color:var(--g);border-top:2px solid var(--g);background:var(--p2)}
+</style>
+</head>
+<body>
+<header><h1>GRAY//LAB</h1><small>security toolkit v1.0 · mobile</small></header>
+<main>
+<section id="dash" class="on">
+<h2>&gt; DASHBOARD</h2><div class="grid" id="cards"></div>
+<p class="note" id="srvnote" style="margin-top:12px">Backend nicht erreichbar. Scanner und SHA3/BLAKE2b gehen nur, wenn du <code>python graylab.py</code> in Termux startest.</p>
+</section>
+
+<section id="hash">
+<h2>&gt; HASH TOOL</h2>
+<textarea id="hin" placeholder="Text eingeben ..."></textarea>
+<div class="row"><button id="hfb">DATEI HASHEN</button><input type="file" id="hf" hidden><small id="hfn" style="color:var(--m)"></small></div>
+<div id="hout"></div>
+<input id="hcmp" placeholder="Erwarteten Hash vergleichen ...">
+<b id="hres"></b>
+</section>
+
+<section id="pw">
+<h2>&gt; PASSWORT LAB</h2>
+<label>Passwort prüfen (nur lokal)</label>
+<input id="pin" type="password" autocomplete="off">
+<label style="display:flex;gap:8px;align-items:center"><input id="pshow" type="checkbox" style="width:auto;margin:0"> Anzeigen</label>
+<div class="bar"><i id="pbar"></i></div>
+<div id="pverd" style="font-size:16px;font-weight:bold"></div>
+<div id="pdet" style="white-space:pre-line;margin:6px 0 16px"></div>
+<label>Generator – Länge</label>
+<input id="plen" type="number" min="8" max="128" value="20">
+<label style="display:flex;gap:8px;align-items:center"><input id="psym" type="checkbox" checked style="width:auto;margin:0"> Sonderzeichen</label>
+<div class="row" style="margin-top:8px"><button id="pgen">GENERIEREN</button><button id="pcp">KOPIEREN</button></div>
+<input id="pout" readonly>
+</section>
+
+<section id="enc">
+<h2>&gt; ENCODER / DECODER</h2>
+<select id="emode"><option>Base64</option><option>Hex</option><option>URL</option><option>ROT13</option><option>Binär</option></select>
+<textarea id="ein" placeholder="Eingabe ..."></textarea>
+<div class="row"><button id="een">ENCODE</button><button id="ede">DECODE</button></div>
+<textarea id="eout" readonly placeholder="Ausgabe ..."></textarea>
+</section>
+<section id="scan">
+<h2>&gt; PORT SCANNER</h2>
+<p class="note">Nur eigene Geräte/Netze oder mit ausdrücklicher Erlaubnis scannen.</p>
+<label>Ziel (Host oder IP)</label><input id="shost" value="127.0.0.1" autocapitalize="off">
+<div class="row"><div style="flex:1"><label>Von</label><input id="sa" type="number" value="1"></div>
+<div style="flex:1"><label>Bis</label><input id="sb" type="number" value="1024"></div>
+<div style="flex:1"><label>Timeout ms</label><input id="st" type="number" value="400"></div></div>
+<button id="sgo">START SCAN</button>
+<div class="bar"><i id="sbar"></i></div>
+<div id="sstat" style="color:var(--m);margin-bottom:8px">Bereit.</div>
+<div id="srows"></div>
+</section>
+</main>
+<nav>
+<a data-t="dash" class="on">Dashboard</a><a data-t="hash">Hash</a><a data-t="pw">Passwort</a><a data-t="enc">Codec</a><a data-t="scan">Scanner</a>
+</nav>
+<script>
+const $=id=>document.getElementById(id);
+const enc=new TextEncoder(),dec=new TextDecoder();
+document.querySelectorAll('nav a').forEach(a=>a.onclick=()=>{
+  document.querySelectorAll('nav a,section').forEach(e=>e.classList.remove('on'));
+  a.classList.add('on');$(a.dataset.t).classList.add('on');
+});
+
+// Dashboard
+(function(){
+  const n=navigator,cn=n.connection||{};
+  const info=[["Plattform",n.userAgentData&&n.userAgentData.platform||n.platform||"?"],
+    ["CPU-Kerne",n.hardwareConcurrency||"?"],["RAM (ca.)",n.deviceMemory?n.deviceMemory+" GB":"?"],
+    ["Bildschirm",screen.width+"×"+screen.height],["Sprache",n.language],
+    ["Online",n.onLine?"ja":"nein"],["Verbindung",cn.effectiveType||"?"],
+    ["Downlink",cn.downlink?cn.downlink+" Mbit/s":"?"],["Module","4 aktive"]];
+  $("cards").innerHTML=info.map(([k,v])=>`<div class="card"><span>${k}</span><b>${v}</b></div>`).join("");
+})();
+
+// Hash
+function md5(bytes){
+  const K=[],S=[7,12,17,22,5,9,14,20,4,11,16,23,6,10,15,21];
+  for(let i=0;i<64;i++)K[i]=Math.floor(Math.abs(Math.sin(i+1))*4294967296)>>>0;
+  const n=bytes.length,len=(((n+8)>>6)+1)*64,b=new Uint8Array(len);
+  b.set(bytes);b[n]=0x80;
+  const dv=new DataView(b.buffer);
+  dv.setUint32(len-8,(n*8)>>>0,true);dv.setUint32(len-4,Math.floor(n/536870912),true);
+  let a0=0x67452301,b0=0xefcdab89,c0=0x98badcfe,d0=0x10325476;
+  for(let off=0;off<len;off+=64){
+    let A=a0,B=b0,C=c0,D=d0;
+    for(let i=0;i<64;i++){
+      let F,g;
+      if(i<16){F=(B&C)|(~B&D);g=i}
+      else if(i<32){F=(D&B)|(~D&C);g=(5*i+1)%16}
+      else if(i<48){F=B^C^D;g=(3*i+5)%16}
+      else{F=C^(B|~D);g=(7*i)%16}
+      F=(F+A+K[i]+dv.getUint32(off+g*4,true))>>>0;
+      A=D;D=C;C=B;const s=S[(i>>4)*4+(i%4)];
+      B=(B+((F<<s)|(F>>>(32-s))))>>>0;
+    }
+    a0=(a0+A)>>>0;b0=(b0+B)>>>0;c0=(c0+C)>>>0;d0=(d0+D)>>>0;
+  }
+  const o=new Uint8Array(16),v=new DataView(o.buffer);
+  [a0,b0,c0,d0].forEach((x,i)=>v.setUint32(i*4,x,true));
+  return hex(o);
+}
+const hex=u=>[...new Uint8Array(u)].map(x=>x.toString(16).padStart(2,"0")).join("");
+const ALG=[["MD5"],["SHA-1"],["SHA-256"],["SHA-384"],["SHA-512"]];
+let hashes={};
+async function doHash(bytes){
+  hashes={MD5:md5(bytes)};
+  for(const [a] of ALG.slice(1))hashes[a]=hex(await crypto.subtle.digest(a,bytes));
+  try{const r=await fetch("/api/hash",{method:"POST",body:bytes});if(r.ok)Object.assign(hashes,await r.json())}catch(e){}
+  $("hout").innerHTML=Object.entries(hashes).map(([k,v])=>`<div class="hv"><b>${k}</b><br>${v}</div>`).join("");
+  cmp();
+}
+function cmp(){
+  const r=$("hcmp").value.trim().toLowerCase(),o=$("hres");
+  if(!r){o.textContent="";return}
+  const m=Object.values(hashes).some(h=>h===r);
+  o.textContent=m?"MATCH":"NO MATCH";o.style.color=m?"var(--g)":"var(--r)";
+}
+$("hin").oninput=()=>{$("hfn").textContent="";doHash(enc.encode($("hin").value))};
+$("hcmp").oninput=cmp;
+$("hfb").onclick=()=>$("hf").click();
+$("hf").onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  $("hfn").textContent=f.name;
+  doHash(new Uint8Array(await f.arrayBuffer()));
+};
+doHash(new Uint8Array());
+
+// Passwort
+const COMMON=new Set("123456 password 12345678 qwerty 123456789 12345 1234 111111 1234567 dragon passwort hallo123 abc123 letmein monkey iloveyou admin welcome login master".split(" "));
+const PUNCT="!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
+function analyze(pw){
+  if(!pw)return[0,0,[]];
+  let pool=0;const notes=[];
+  if(/[a-z]/.test(pw))pool+=26;else notes.push("Keine Kleinbuchstaben");
+  if(/[A-Z]/.test(pw))pool+=26;else notes.push("Keine Großbuchstaben");
+  if(/\d/.test(pw))pool+=10;else notes.push("Keine Ziffern");
+  if([...pw].some(c=>PUNCT.includes(c)))pool+=32;else notes.push("Keine Sonderzeichen");
+  if(pw.length<12)notes.push("Kürzer als 12 Zeichen");
+  const common=COMMON.has(pw.toLowerCase());
+  if(common)notes.push("Auf der Liste häufiger Passwörter!");
+  if(new Set(pw).size<pw.length*0.5)notes.push("Viele wiederholte Zeichen");
+  let e=pool?pw.length*Math.log2(pool):0;
+  if(common)e=Math.min(e,10);
+  return[Math.max(0,Math.min(100,Math.floor(e/90*100))),e,notes];
+}
+$("pin").oninput=()=>{
+  const pw=$("pin").value,[s,e,n]=analyze(pw);
+  let l="",c="var(--m)";
+  if(pw){if(s<30){l="SCHWACH";c="var(--r)"}else if(s<55){l="MITTEL";c="var(--y)"}else if(s<80){l="STARK";c="var(--c)"}else{l="SEHR STARK";c="var(--g)"}}
+  $("pbar").style.width=s+"%";$("pbar").style.background=c;
+  $("pverd").textContent=l;$("pverd").style.color=c;
+  $("pdet").textContent=pw?`Entropie: ${e.toFixed(1)} Bit`+(n.length?"\n- "+n.join("\n- "):""):"";
+};
+$("pshow").onchange=e=>$("pin").type=e.target.checked?"text":"password";
+$("pgen").onclick=()=>{
+  let ch="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  if($("psym").checked)ch+="!@#$%^&*()-_=+[]{};:,.?";
+  const len=Math.max(8,Math.min(128,+$("plen").value||20)),lim=Math.floor(4294967296/ch.length)*ch.length;
+  let out="";
+  while(out.length<len){
+    const a=crypto.getRandomValues(new Uint32Array(len));
+    for(const x of a){if(x<lim&&out.length<len)out+=ch[x%ch.length]}
+  }
+  $("pout").value=out;
+};
+$("pcp").onclick=async()=>{
+  const v=$("pout").value;if(!v)return;
+  try{await navigator.clipboard.writeText(v)}catch(e){$("pout").select();document.execCommand("copy")}
+};
+
+// Codec
+const b64e=s=>btoa(String.fromCharCode(...enc.encode(s)));
+const b64d=s=>dec.decode(Uint8Array.from(atob(s.trim()),c=>c.charCodeAt(0)));
+const rot13=s=>s.replace(/[a-z]/gi,c=>{const b=c<="Z"?65:97;return String.fromCharCode((c.charCodeAt(0)-b+13)%26+b)});
+function run(en){
+  const t=$("ein").value,m=$("emode").value;let r;
+  try{
+    if(m==="Base64")r=en?b64e(t):b64d(t);
+    else if(m==="Hex")r=en?[...enc.encode(t)].map(x=>x.toString(16).padStart(2,"0")).join(""):dec.decode(Uint8Array.from(t.replace(/\s/g,"").match(/../g)||[],h=>parseInt(h,16)));
+    else if(m==="URL")r=en?encodeURIComponent(t):decodeURIComponent(t);
+    else if(m==="ROT13")r=rot13(t);
+    else r=en?[...enc.encode(t)].map(x=>x.toString(2).padStart(8,"0")).join(" "):dec.decode(Uint8Array.from(t.trim().split(/\s+/),x=>parseInt(x,2)));
+  }catch(e){r="[Fehler] "+e.message}
+  $("eout").value=r;
+}
+$("een").onclick=()=>run(true);$("ede").onclick=()=>run(false);
+
+// Backend (Termux)
+fetch("/api/info").then(r=>r.json()).then(d=>{
+  $("cards").insertAdjacentHTML("beforeend",Object.entries(d).map(([k,v])=>`<div class="card"><span>${k}</span><b>${v}</b></div>`).join(""));
+  $("srvnote").textContent="Backend verbunden: Scanner und SHA3/BLAKE2b aktiv.";
+}).catch(()=>{});
+let ctl=null;
+$("sgo").onclick=async()=>{
+  if(ctl){ctl.abort();return}
+  $("srows").innerHTML="";$("sbar").style.width="0";$("sstat").textContent="Scanne ...";
+  $("sgo").textContent="ABBRECHEN";ctl=new AbortController();
+  const q=new URLSearchParams({host:$("shost").value.trim(),start:$("sa").value,end:$("sb").value,timeout:$("st").value});
+  const on=m=>{
+    if(m.t==="open")$("srows").insertAdjacentHTML("beforeend",`<div class="card" style="margin-bottom:6px"><b>${m.port}</b> <span style="display:inline;color:var(--g)">OPEN</span> ${m.svc} <span style="display:inline;color:${m.risk?"var(--r)":"var(--m)"}">${m.risk?"HIGH":"NORMAL"}</span></div>`);
+    else if(m.t==="p")$("sbar").style.width=m.v+"%";
+    else if(m.t==="done")$("sstat").textContent=`Fertig: ${m.open} offene Ports in ${m.secs}s`;
+    else if(m.t==="err")$("sstat").textContent="Fehler: "+m.msg;
+  };
+  try{
+    const r=await fetch("/api/scan?"+q,{signal:ctl.signal}),rd=r.body.getReader();let buf="";
+    for(;;){const {done,value}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});
+      let i;while((i=buf.indexOf("\n"))>=0){const l=buf.slice(0,i);buf=buf.slice(i+1);if(l)on(JSON.parse(l))}}
+  }catch(e){$("sstat").textContent=e.name==="AbortError"?"Abgebrochen.":"Backend nicht erreichbar (python graylab.py starten)."}
+  ctl=null;$("sgo").textContent="START SCAN";
+};
+</script>
+</body>
+</html>
